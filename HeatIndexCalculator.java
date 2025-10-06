@@ -9,6 +9,8 @@ import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.*;
 import java.text.DecimalFormat;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 public class HeatIndexCalculator extends JFrame implements ActionListener {
     
@@ -22,12 +24,15 @@ public class HeatIndexCalculator extends JFrame implements ActionListener {
     private JTextArea historyArea;
     private DecimalFormat df = new DecimalFormat("#.##");
     
-    private final Color BACKGROUND_COLOR = new Color(240, 248, 255);
+    private final Color BACKGROUND_COLOR = new Color(245, 250, 255);
     private final Color PANEL_COLOR = new Color(255, 255, 255);
-    private final Color BUTTON_COLOR = new Color(70, 130, 180);
-    private final Color TEXT_COLOR = new Color(25, 25, 112);
-    private final Color WARNING_COLOR = new Color(220, 20, 60);
-    private final Color SAFE_COLOR = new Color(34, 139, 34);
+    private final Color BUTTON_COLOR = new Color(52, 152, 219);
+    private final Color BUTTON_HOVER = new Color(41, 128, 185);
+    private final Color TEXT_COLOR = new Color(44, 62, 80);
+    private final Color WARNING_COLOR = new Color(231, 76, 60);
+    private final Color SAFE_COLOR = new Color(46, 204, 113);
+    private final Color INPUT_BORDER = new Color(189, 195, 199);
+    private final Color INPUT_FOCUS = new Color(52, 152, 219);
     
     public HeatIndexCalculator() {
         initializeGUI();
@@ -51,64 +56,96 @@ public class HeatIndexCalculator extends JFrame implements ActionListener {
     private void createMainPanel() {
         JPanel mainPanel = new JPanel(new GridBagLayout());
         mainPanel.setBackground(PANEL_COLOR);
+        
+        // Create a beautiful title border
         mainPanel.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createTitledBorder("Heat Index Calculator"),
-            new EmptyBorder(20, 20, 20, 20)
+            BorderFactory.createTitledBorder(
+                BorderFactory.createLineBorder(INPUT_BORDER, 2),
+                "🌡️ Heat Index Calculator",
+                0, 0,
+                new Font("Arial", Font.BOLD, 16),
+                TEXT_COLOR
+            ),
+            new EmptyBorder(25, 25, 25, 25)
         ));
         
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(10, 10, 10, 10);
+        gbc.insets = new Insets(15, 15, 15, 15);
         
-        // Temperature input
+        // Temperature section
         gbc.gridx = 0; gbc.gridy = 0;
-        mainPanel.add(new JLabel("Temperature:"), gbc);
+        gbc.anchor = GridBagConstraints.WEST;
+        JLabel tempLabel = new JLabel("🌡️ Temperature:");
+        tempLabel.setFont(new Font("Arial", Font.BOLD, 14));
+        tempLabel.setForeground(TEXT_COLOR);
+        mainPanel.add(tempLabel, gbc);
         
         gbc.gridx = 1;
-        temperatureField = new JTextField(10);
-        temperatureField.setFont(new Font("Arial", Font.PLAIN, 14));
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        temperatureField = createStyledTextField("Enter temperature (e.g., 85)", 12);
         mainPanel.add(temperatureField, gbc);
         
         gbc.gridx = 2;
-        tempUnitCombo = new JComboBox<>(new String[]{"°F (Fahrenheit)", "°C (Celsius)"});
+        gbc.fill = GridBagConstraints.NONE;
+        tempUnitCombo = createStyledComboBox(new String[]{"°F (Fahrenheit)", "°C (Celsius)"});
         tempUnitCombo.setSelectedIndex(0);
         mainPanel.add(tempUnitCombo, gbc);
         
-        // Humidity input
+        // Humidity section
         gbc.gridx = 0; gbc.gridy = 1;
-        mainPanel.add(new JLabel("Relative Humidity (%):"), gbc);
+        gbc.anchor = GridBagConstraints.WEST;
+        JLabel humidityLabel = new JLabel("💧 Relative Humidity:");
+        humidityLabel.setFont(new Font("Arial", Font.BOLD, 14));
+        humidityLabel.setForeground(TEXT_COLOR);
+        mainPanel.add(humidityLabel, gbc);
         
         gbc.gridx = 1;
-        humidityField = new JTextField(10);
-        humidityField.setFont(new Font("Arial", Font.PLAIN, 14));
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        humidityField = createStyledTextField("Enter humidity % (0-100)", 12);
         mainPanel.add(humidityField, gbc);
         
-        // Buttons
-        gbc.gridx = 0; gbc.gridy = 2;
-        calculateButton = createStyledButton("Calculate Heat Index");
-        mainPanel.add(calculateButton, gbc);
+        gbc.gridx = 2;
+        gbc.fill = GridBagConstraints.NONE;
+        JLabel percentLabel = new JLabel("% RH");
+        percentLabel.setFont(new Font("Arial", Font.BOLD, 14));
+        percentLabel.setForeground(TEXT_COLOR);
+        mainPanel.add(percentLabel, gbc);
         
-        gbc.gridx = 1;
-        clearButton = createStyledButton("Clear");
-        mainPanel.add(clearButton, gbc);
+        // Button panel
+        gbc.gridx = 0; gbc.gridy = 2;
+        gbc.gridwidth = 3;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 10));
+        buttonPanel.setBackground(PANEL_COLOR);
+        
+        calculateButton = createStyledButton("🧮 Calculate Heat Index", BUTTON_COLOR);
+        clearButton = createStyledButton("🗑️ Clear All", new Color(149, 165, 166));
+        
+        buttonPanel.add(calculateButton);
+        buttonPanel.add(clearButton);
+        mainPanel.add(buttonPanel, gbc);
         
         // Result display
         gbc.gridx = 0; gbc.gridy = 3;
         gbc.gridwidth = 3;
         gbc.fill = GridBagConstraints.HORIZONTAL;
         
-        resultLabel = new JLabel("Enter temperature and humidity to calculate heat index", JLabel.CENTER);
-        resultLabel.setFont(new Font("Arial", Font.BOLD, 16));
+        resultLabel = new JLabel("📊 Enter temperature and humidity values above", JLabel.CENTER);
+        resultLabel.setFont(new Font("Arial", Font.BOLD, 18));
         resultLabel.setForeground(TEXT_COLOR);
+        resultLabel.setOpaque(true);
+        resultLabel.setBackground(new Color(236, 240, 241));
         resultLabel.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(Color.GRAY),
-            new EmptyBorder(15, 10, 15, 10)
+            BorderFactory.createLineBorder(INPUT_BORDER, 2, true),
+            new EmptyBorder(20, 15, 20, 15)
         ));
         mainPanel.add(resultLabel, gbc);
         
         // Warning label
         gbc.gridy = 4;
         warningLabel = new JLabel("", JLabel.CENTER);
-        warningLabel.setFont(new Font("Arial", Font.BOLD, 14));
+        warningLabel.setFont(new Font("Arial", Font.BOLD, 16));
+        warningLabel.setBorder(new EmptyBorder(10, 10, 10, 10));
         mainPanel.add(warningLabel, gbc);
         
         add(mainPanel, BorderLayout.CENTER);
@@ -135,23 +172,40 @@ public class HeatIndexCalculator extends JFrame implements ActionListener {
     
     private void createHistoryPanel() {
         JPanel historyPanel = new JPanel(new BorderLayout());
-        historyPanel.setBorder(BorderFactory.createTitledBorder("Calculation History"));
-        historyPanel.setPreferredSize(new Dimension(300, 200));
+        historyPanel.setBorder(BorderFactory.createTitledBorder(
+            BorderFactory.createLineBorder(INPUT_BORDER, 2),
+            "📜 Calculation History",
+            0, 0,
+            new Font("Arial", Font.BOLD, 14),
+            TEXT_COLOR
+        ));
+        historyPanel.setPreferredSize(new Dimension(350, 200));
+        historyPanel.setBackground(PANEL_COLOR);
         
         historyArea = new JTextArea(10, 25);
         historyArea.setEditable(false);
-        historyArea.setFont(new Font("Monospaced", Font.PLAIN, 12));
-        historyArea.setBackground(new Color(248, 248, 255));
+        historyArea.setFont(new Font("Consolas", Font.PLAIN, 12));
+        historyArea.setBackground(new Color(248, 249, 250));
+        historyArea.setBorder(new EmptyBorder(10, 10, 10, 10));
+        historyArea.setLineWrap(true);
+        historyArea.setWrapStyleWord(true);
         
         JScrollPane scrollPane = new JScrollPane(historyArea);
+        scrollPane.setBorder(BorderFactory.createLineBorder(INPUT_BORDER, 1));
+        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
         historyPanel.add(scrollPane, BorderLayout.CENTER);
         
-        JButton clearHistoryBtn = createStyledButton("Clear History");
+        JPanel buttonPanel = new JPanel(new FlowLayout());
+        buttonPanel.setBackground(PANEL_COLOR);
+        
+        JButton clearHistoryBtn = createStyledButton("🗑️ Clear History", new Color(231, 76, 60));
         clearHistoryBtn.addActionListener(e -> {
             historyArea.setText("");
+            historyArea.append("📝 History cleared\n");
         });
-        historyPanel.add(clearHistoryBtn, BorderLayout.SOUTH);
+        buttonPanel.add(clearHistoryBtn);
         
+        historyPanel.add(buttonPanel, BorderLayout.SOUTH);
         add(historyPanel, BorderLayout.EAST);
     }
     
@@ -169,19 +223,27 @@ public class HeatIndexCalculator extends JFrame implements ActionListener {
     }
     
     private JPanel createInfoCard(String title, String range, Color color) {
-        JPanel card = new JPanel(new BorderLayout());
+        JPanel card = new JPanel(new BorderLayout(5, 5));
         card.setBackground(Color.WHITE);
         card.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(color, 2),
-            new EmptyBorder(5, 5, 5, 5)
+            BorderFactory.createLineBorder(color, 3, true),
+            new EmptyBorder(8, 8, 8, 8)
         ));
         
-        JLabel titleLabel = new JLabel(title, JLabel.CENTER);
-        titleLabel.setFont(new Font("Arial", Font.BOLD, 12));
+        // Add emoji based on danger level
+        String emoji = "🟢";
+        if (title.contains("Caution") && !title.contains("Extreme")) emoji = "🟡";
+        else if (title.contains("Extreme Caution")) emoji = "🟠";
+        else if (title.contains("Danger") && !title.contains("Extreme")) emoji = "🔴";
+        else if (title.contains("Extreme Danger")) emoji = "🆘";
+        
+        JLabel titleLabel = new JLabel(emoji + " " + title, JLabel.CENTER);
+        titleLabel.setFont(new Font("Arial", Font.BOLD, 11));
         titleLabel.setForeground(color);
         
         JLabel rangeLabel = new JLabel(range, JLabel.CENTER);
-        rangeLabel.setFont(new Font("Arial", Font.PLAIN, 11));
+        rangeLabel.setFont(new Font("Arial", Font.PLAIN, 10));
+        rangeLabel.setForeground(color.darker());
         
         card.add(titleLabel, BorderLayout.CENTER);
         card.add(rangeLabel, BorderLayout.SOUTH);
@@ -189,27 +251,82 @@ public class HeatIndexCalculator extends JFrame implements ActionListener {
         return card;
     }
     
-    private JButton createStyledButton(String text) {
+    private JTextField createStyledTextField(String placeholder, int columns) {
+        JTextField field = new JTextField(columns);
+        field.setFont(new Font("Arial", Font.PLAIN, 16));
+        field.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(INPUT_BORDER, 2, true),
+            new EmptyBorder(8, 12, 8, 12)
+        ));
+        
+        // Add placeholder text
+        field.setText(placeholder);
+        field.setForeground(Color.GRAY);
+        
+        field.addFocusListener(new FocusListener() {
+            @Override
+            public void focusGained(FocusEvent e) {
+                if (field.getText().equals(placeholder)) {
+                    field.setText("");
+                    field.setForeground(TEXT_COLOR);
+                }
+                field.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(INPUT_FOCUS, 2, true),
+                    new EmptyBorder(8, 12, 8, 12)
+                ));
+            }
+            
+            @Override
+            public void focusLost(FocusEvent e) {
+                if (field.getText().isEmpty()) {
+                    field.setText(placeholder);
+                    field.setForeground(Color.GRAY);
+                }
+                field.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(INPUT_BORDER, 2, true),
+                    new EmptyBorder(8, 12, 8, 12)
+                ));
+            }
+        });
+        
+        return field;
+    }
+    
+    private JComboBox<String> createStyledComboBox(String[] items) {
+        JComboBox<String> combo = new JComboBox<>(items);
+        combo.setFont(new Font("Arial", Font.PLAIN, 14));
+        combo.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(INPUT_BORDER, 2, true),
+            new EmptyBorder(5, 8, 5, 8)
+        ));
+        combo.setBackground(Color.WHITE);
+        return combo;
+    }
+    
+    private JButton createStyledButton(String text, Color bgColor) {
         JButton button = new JButton(text);
-        button.setFont(new Font("Arial", Font.BOLD, 12));
-        button.setBackground(BUTTON_COLOR);
+        button.setFont(new Font("Arial", Font.BOLD, 14));
+        button.setBackground(bgColor);
         button.setForeground(Color.WHITE);
         button.setFocusPainted(false);
         button.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(BUTTON_COLOR.darker()),
-            new EmptyBorder(8, 15, 8, 15)
+            BorderFactory.createLineBorder(bgColor.darker(), 1, true),
+            new EmptyBorder(12, 20, 12, 20)
         ));
         button.addActionListener(this);
         
+        Color originalColor = bgColor;
         button.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseEntered(MouseEvent e) {
-                button.setBackground(BUTTON_COLOR.brighter());
+                button.setBackground(originalColor.brighter());
+                button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
             }
             
             @Override
             public void mouseExited(MouseEvent e) {
-                button.setBackground(BUTTON_COLOR);
+                button.setBackground(originalColor);
+                button.setCursor(Cursor.getDefaultCursor());
             }
         });
         
@@ -230,8 +347,11 @@ public class HeatIndexCalculator extends JFrame implements ActionListener {
             String tempText = temperatureField.getText().trim();
             String humidityText = humidityField.getText().trim();
             
-            if (tempText.isEmpty() || humidityText.isEmpty()) {
+            // Check for placeholder text
+            if (tempText.isEmpty() || tempText.contains("Enter temperature") || 
+                humidityText.isEmpty() || humidityText.contains("Enter humidity")) {
                 showError("Please enter both temperature and humidity values.");
+                temperatureField.requestFocus();
                 return;
             }
             
@@ -320,23 +440,30 @@ public class HeatIndexCalculator extends JFrame implements ActionListener {
             hiUnit = "°C";
         }
         
-        String result = String.format("Heat Index: %s %s", df.format(displayHI), hiUnit);
+        String result = String.format("🔥 Heat Index: %s %s | Input: %s%s, %s%% RH", 
+            df.format(displayHI), hiUnit, df.format(temp), tempUnit, df.format(humidity));
         resultLabel.setText(result);
-        resultLabel.setForeground(TEXT_COLOR);
+        resultLabel.setForeground(Color.WHITE);
         
         // Determine warning level and color
         String warning = getWarningLevel(heatIndex);
         warningLabel.setText(warning);
         
+        // Set result background color based on danger level
         if (warning.contains("Extreme Danger")) {
+            resultLabel.setBackground(new Color(139, 0, 0));
             warningLabel.setForeground(new Color(139, 0, 0));
         } else if (warning.contains("Danger")) {
-            warningLabel.setForeground(new Color(255, 69, 0));
+            resultLabel.setBackground(new Color(231, 76, 60));
+            warningLabel.setForeground(new Color(192, 57, 43));
         } else if (warning.contains("Extreme Caution")) {
-            warningLabel.setForeground(new Color(255, 140, 0));
+            resultLabel.setBackground(new Color(243, 156, 18));
+            warningLabel.setForeground(new Color(230, 126, 34));
         } else if (warning.contains("Caution")) {
-            warningLabel.setForeground(new Color(255, 215, 0));
+            resultLabel.setBackground(new Color(241, 196, 15));
+            warningLabel.setForeground(new Color(183, 149, 11));
         } else {
+            resultLabel.setBackground(SAFE_COLOR);
             warningLabel.setForeground(SAFE_COLOR);
         }
     }
@@ -365,20 +492,39 @@ public class HeatIndexCalculator extends JFrame implements ActionListener {
             hiUnit = "°C";
         }
         
-        String entry = String.format("%s %s, %s%% RH → %s %s\n", 
-            df.format(temp), tempUnit, 
-            df.format(humidity), 
-            df.format(displayHI), hiUnit);
+        // Add timestamp and emoji based on danger level
+        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm"));
+        String emoji = "🟢";
+        if (heatIndex >= 130) emoji = "🆘";
+        else if (heatIndex >= 105) emoji = "🔴";
+        else if (heatIndex >= 90) emoji = "🟠";
+        else if (heatIndex >= 80) emoji = "🟡";
+        
+        String entry = String.format("[%s] %s %s%s, %s%% → %s%s %s\n", 
+            timestamp, emoji, df.format(temp), tempUnit, 
+            df.format(humidity), df.format(displayHI), hiUnit,
+            getShortWarning(heatIndex));
         
         historyArea.append(entry);
         historyArea.setCaretPosition(historyArea.getDocument().getLength());
     }
     
+    private String getShortWarning(double heatIndexF) {
+        if (heatIndexF >= 130) return "(EXTREME)";
+        else if (heatIndexF >= 105) return "(DANGER)";
+        else if (heatIndexF >= 90) return "(CAUTION+)";
+        else if (heatIndexF >= 80) return "(CAUTION)";
+        else return "(SAFE)";
+    }
+    
     private void clearFields() {
-        temperatureField.setText("");
-        humidityField.setText("");
-        resultLabel.setText("Enter temperature and humidity to calculate heat index");
+        temperatureField.setText("Enter temperature (e.g., 85)");
+        temperatureField.setForeground(Color.GRAY);
+        humidityField.setText("Enter humidity % (0-100)");
+        humidityField.setForeground(Color.GRAY);
+        resultLabel.setText("📊 Enter temperature and humidity values above");
         resultLabel.setForeground(TEXT_COLOR);
+        resultLabel.setBackground(new Color(236, 240, 241));
         warningLabel.setText("");
         temperatureField.requestFocus();
     }
