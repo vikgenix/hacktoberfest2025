@@ -12,3 +12,7 @@ class Solution:
                 end = min(end, balloon[1])
         
         return arrows
+        
+points = [[1,2],[2,3],[3,4],[4,5]]
+sol=Solution()
+print(sol.containsDuplicate(points))     
